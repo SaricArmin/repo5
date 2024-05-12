@@ -13,9 +13,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -24,55 +26,73 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
-import com.example.movieappmad24.viewmodels.MoviesViewModel
+import com.example.movieappmad24.data.MovieDatabase
+import com.example.movieappmad24.data.MovieRepository
+import com.example.movieappmad24.viewmodels.DetailViewModel
+import com.example.movieappmad24.viewmodels.DetailViewModelFacotry
 import com.example.movieappmad24.widgets.HorizontalScrollableImageView
 import com.example.movieappmad24.widgets.MovieRow
 import com.example.movieappmad24.widgets.SimpleTopAppBar
 
 @Composable
 fun DetailScreen(
-    movieId: String?,
+    movieId: String,
     navController: NavController,
-    moviesViewModel: MoviesViewModel
 ) {
+    val db = MovieDatabase.getDatabase(LocalContext.current, rememberCoroutineScope())
+    val repository = MovieRepository(movieDao = db.movieDao())
+    val factory = DetailViewModelFacotry(repository, movieId)
+    val detailViewModel: DetailViewModel = viewModel(
+        factory = factory)
 
-    movieId?.let {
-        val movie = moviesViewModel.movies.filter { movie -> movie.id == movieId }[0]
-
+    movieId.let {
+        val movie = detailViewModel.movies.collectAsState().value.firstOrNull{ it.movie.id == movieId }?.movie
+        val movie2 = detailViewModel.movies.collectAsState().value.firstOrNull{ it.movie.id == movieId }
 
         Scaffold (
             topBar = {
-                SimpleTopAppBar(title = movie.title) {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "Go back"
-                        )
+                if (movie != null) {
+                    if (movie2 != null) {
+                        SimpleTopAppBar(title = movie2.movie.title) {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(
+                                    imageVector = Icons.Filled.ArrowBack,
+                                    contentDescription = "Go back"
+                                )
+                            }
+                        }
                     }
                 }
             }
         ){ innerPadding ->
             Column {
-                MovieRow(
-                    modifier = Modifier.padding(innerPadding),
-                    movie = movie,
-                    onFavoriteClick = { id -> moviesViewModel.toggleFavoriteMovie(id) }
-                    )
+                    if (movie2 != null) {
+                        MovieRow(
+                            modifier = Modifier.padding(innerPadding),
+                            movieWithImages = movie2,
+                            onFavoriteClick = { id -> detailViewModel.toggleFavoriteMovie(movie2.movie) }
+                        )
+                }
 
                 Divider(modifier = Modifier.padding(4.dp))
 
                 Column {
                     Text("Movie Trailer")
-                    VideoPlayer(trailerURL = movie.trailer)
+                        if (movie2 != null) {
+                            VideoPlayer(trailerURL = movie2.movie.trailer)
+                        }
                 }
 
                 Divider(modifier = Modifier.padding(4.dp))
 
-                HorizontalScrollableImageView(movie = movie)
+                if (movie != null) {
+                    HorizontalScrollableImageView(movie = movie)
+                }
             }
         }
     }

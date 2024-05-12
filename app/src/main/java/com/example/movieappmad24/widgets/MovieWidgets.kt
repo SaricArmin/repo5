@@ -46,67 +46,86 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.movieappmad24.models.Movie
-import com.example.movieappmad24.models.getMovies
-import com.example.movieappmad24.navigation.Screen
-import com.example.movieappmad24.viewmodels.MoviesViewModel
+import com.example.movieappmad24.models.MovieWithImages
+//import com.example.movieappmad24.models.getMovies
+
+//import com.example.movieappmad24.viewmodels.MoviesViewModel
 
 
 @Composable
 fun MovieList(
     modifier: Modifier,
-    movies: List<Movie> = getMovies(),
-    navController: NavController,
-    viewModel: MoviesViewModel
+    movies: List<MovieWithImages>,
+    onFavoriteClick: (Movie) -> Unit,
+    onItemClick: (String) -> Unit
 ){
     LazyColumn(modifier = modifier) {
         items(movies) { movie ->
             MovieRow(
-                movie = movie,
-                onFavoriteClick = {movieId ->
-                    viewModel.toggleFavoriteMovie(movieId)
-                },
-                onItemClick = { movieId ->
-                    navController.navigate(route = Screen.DetailScreen.withId(movieId))
+                movieWithImages = movie,
+                onFavoriteClick = {
+                    onFavoriteClick(movie.movie) // Correctly passing the entire movie object
                 }
-            )
+            ) {
+                onItemClick(movie.movie.id) // Passing only the movie ID for navigation
+            }
+        }
+    }
+}
+
+
+
+@Composable
+fun MovieRow(
+    modifier: Modifier = Modifier,
+    movieWithImages: MovieWithImages,
+    onFavoriteClick: (String) -> Unit = {},
+    onItemClick: (String) -> Unit = {}
+){
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(5.dp)
+            .clickable { onItemClick(movieWithImages.movie.id) },
+        shape = ShapeDefaults.Large,
+        elevation = CardDefaults.cardElevation(10.dp)
+    ) {
+        Column {
+            if (movieWithImages.movieImages.isNotEmpty()) {
+                Log.d("Movie Image URL", movieWithImages.movieImages.first().url)
+                MovieCardHeader(
+                    imageUrl = movieWithImages.movieImages.first().url,
+                    isFavorite = movieWithImages.movie.isFavorite,
+                    onFavoriteClick = { onFavoriteClick(movieWithImages.movie.id) }
+                )
+            } else {
+                Log.d("Movie Image", "No images available for this movie.")
+                PlaceholderImage()
+            }
+
+            MovieDetails(modifier = modifier.padding(12.dp), movie = movieWithImages.movie)
         }
     }
 }
 
 @Composable
-fun MovieRow(
-    modifier: Modifier = Modifier,
-    movie: Movie,
-    onFavoriteClick: (String) -> Unit = {},
-    onItemClick: (String) -> Unit = {}
-){
-    Card(modifier = modifier
-        .fillMaxWidth()
-        .padding(5.dp)
-        .clickable {
-            onItemClick(movie.id)
-        },
-        shape = ShapeDefaults.Large,
-        elevation = CardDefaults.cardElevation(10.dp)
+fun PlaceholderImage() {
+    Box(
+        modifier = Modifier
+            .height(150.dp)
+            .fillMaxWidth(),
+        contentAlignment = Alignment.Center
     ) {
-        Column {
-
-            MovieCardHeader(
-                imageUrl = movie.images[0],
-                isFavorite = movie.isFavorite,
-                onFavoriteClick = { onFavoriteClick(movie.id) }
-            )
-
-            MovieDetails(modifier = modifier.padding(12.dp), movie = movie)
-
-        }
+        Text("No Image Available") //idk images won't load
     }
 }
+
+
+
 
 @Composable
 fun MovieCardHeader(

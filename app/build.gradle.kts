@@ -45,7 +45,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.6"
     }
     packaging {
         resources {
@@ -55,6 +55,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.room:room-common:2.6.1")
     // versions
     val nav_version = "2.7.7"
     val lifecycle_version = "2.7.0"
